@@ -1,67 +1,59 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Issue } from "@/types/issue";
-import { AlertCircle, Clock, CheckCircle, FileText } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import type { Issue } from "./IssueCard";
 
 interface StatsOverviewProps {
   issues: Issue[];
 }
 
-const StatsOverview = ({ issues }: StatsOverviewProps) => {
-  const openIssues = issues.filter(issue => issue.status === 'open').length;
-  const inProgressIssues = issues.filter(issue => issue.status === 'in-progress').length;
-  const resolvedIssues = issues.filter(issue => issue.status === 'resolved').length;
-  const totalIssues = issues.length;
+export const StatsOverview = ({ issues }: StatsOverviewProps) => {
+  const pendingCount = issues.filter(issue => issue.status === "pending").length;
+  const inProgressCount = issues.filter(issue => issue.status === "in-progress").length;
+  const resolvedCount = issues.filter(issue => issue.status === "resolved").length;
+  const highPriorityCount = issues.filter(issue => issue.priority === "high").length;
 
   const stats = [
     {
-      title: "Total Issues",
-      value: totalIssues,
-      icon: FileText,
-      color: "bg-muted text-muted-foreground"
-    },
-    {
-      title: "Open Issues",
-      value: openIssues,
-      icon: AlertCircle,
-      color: "bg-destructive text-destructive-foreground"
+      title: "Pending Issues",
+      value: pendingCount,
+      icon: AlertTriangle,
+      color: "text-warning"
     },
     {
       title: "In Progress",
-      value: inProgressIssues,
+      value: inProgressCount,
       icon: Clock,
-      color: "bg-warning text-warning-foreground"
+      color: "text-primary"
     },
     {
       title: "Resolved",
-      value: resolvedIssues,
+      value: resolvedCount,
       icon: CheckCircle,
-      color: "bg-success text-success-foreground"
+      color: "text-success"
+    },
+    {
+      title: "High Priority",
+      value: highPriorityCount,
+      icon: TrendingUp,
+      color: "text-destructive"
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-        return (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className={`p-2 rounded-md ${stat.color}`}>
-                <Icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {stats.map((stat) => (
+        <Card key={stat.title}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              {stat.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold">{stat.value}</div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };
-
-export default StatsOverview;

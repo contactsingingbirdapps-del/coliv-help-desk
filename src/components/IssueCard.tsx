@@ -1,75 +1,87 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Issue } from "@/types/issue";
-import { Clock, AlertTriangle, Wrench, Trash2, Volume2, Zap, Shield, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, User, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+
+export type Issue = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: "low" | "medium" | "high";
+  status: "pending" | "in-progress" | "resolved";
+  submittedBy: string;
+  submittedAt: Date;
+  unit?: string;
+};
 
 interface IssueCardProps {
   issue: Issue;
 }
 
-const IssueCard = ({ issue }: IssueCardProps) => {
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'maintenance': return Wrench;
-      case 'cleaning': return Trash2;
-      case 'noise': return Volume2;
-      case 'utilities': return Zap;
-      case 'safety': return Shield;
-      default: return HelpCircle;
-    }
-  };
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case "high":
+      return "destructive";
+    case "medium":
+      return "warning";
+    case "low":
+      return "success";
+    default:
+      return "secondary";
+  }
+};
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-destructive text-destructive-foreground';
-      case 'in-progress': return 'bg-warning text-warning-foreground';
-      case 'resolved': return 'bg-success text-success-foreground';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case "resolved":
+      return <CheckCircle className="h-4 w-4" />;
+    case "in-progress":
+      return <Clock className="h-4 w-4" />;
+    case "pending":
+      return <AlertTriangle className="h-4 w-4" />;
+    default:
+      return <AlertTriangle className="h-4 w-4" />;
+  }
+};
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-destructive text-destructive-foreground';
-      case 'high': return 'bg-warning text-warning-foreground';
-      case 'medium': return 'bg-info text-info-foreground';
-      case 'low': return 'bg-muted text-muted-foreground';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
-
-  const Icon = getCategoryIcon(issue.category);
-
+export const IssueCard = ({ issue }: IssueCardProps) => {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-2">
-            <Icon className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">{issue.title}</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {getStatusIcon(issue.status)}
+            <h3 className="font-semibold text-sm">{issue.title}</h3>
           </div>
-          <div className="flex space-x-2">
-            <Badge className={getPriorityColor(issue.priority)}>
-              {issue.priority}
-            </Badge>
-            <Badge className={getStatusColor(issue.status)}>
-              {issue.status}
-            </Badge>
+          <Badge variant={getPriorityColor(issue.priority) as any}>
+            {issue.priority}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {issue.submittedBy}
           </div>
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {issue.submittedAt.toLocaleDateString()}
+          </div>
+          {issue.unit && <span>Unit {issue.unit}</span>}
         </div>
       </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground mb-3">{issue.description}</p>
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span className="capitalize">{issue.category}</span>
-          <div className="flex items-center space-x-1">
-            <Clock className="h-4 w-4" />
-            <span>{issue.createdAt.toLocaleDateString()}</span>
-          </div>
+      <CardContent className="pt-0">
+        <p className="text-sm text-muted-foreground mb-3">{issue.description}</p>
+        <div className="flex items-center justify-between">
+          <Badge variant="outline">{issue.category}</Badge>
+          <Badge 
+            variant={issue.status === "resolved" ? "default" : "secondary"}
+            className="capitalize"
+          >
+            {issue.status.replace("-", " ")}
+          </Badge>
         </div>
       </CardContent>
     </Card>
   );
 };
-
-export default IssueCard;

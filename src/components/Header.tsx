@@ -1,28 +1,43 @@
-import { Home, Bell } from "lucide-react";
+import { Building2, Settings, Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-const Header = () => {
+interface HeaderProps {
+  pendingCount: number;
+}
+
+export const Header = ({ pendingCount }: HeaderProps) => {
   return (
-    <header className="bg-primary text-primary-foreground shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-3">
-            <Home className="h-8 w-8" />
+    <header className="border-b bg-card">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary rounded-lg">
+              <Building2 className="h-6 w-6 text-primary-foreground" />
+            </div>
             <div>
               <h1 className="text-xl font-bold">CoLiving Manager</h1>
-              <p className="text-sm text-primary-foreground/80">Issue Reporting Portal</p>
+              <p className="text-sm text-muted-foreground">Report and track issues</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <Bell className="h-6 w-6" />
-            <div className="text-right">
-              <p className="text-sm font-medium">Welcome, Tenant</p>
-              <p className="text-xs text-primary-foreground/70">Unit 2B</p>
+          
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Button variant="ghost" size="icon">
+                <Bell className="h-5 w-5" />
+              </Button>
+              {pendingCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                  {pendingCount > 9 ? "9+" : pendingCount}
+                </Badge>
+              )}
             </div>
+            <Button variant="ghost" size="icon">
+              <Settings className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </div>
     </header>
   );
 };
-
-export default Header;
