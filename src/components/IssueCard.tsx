@@ -2,18 +2,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, User, AlertTriangle, CheckCircle, Clock } from "lucide-react";
-
-export type Issue = {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  priority: "low" | "medium" | "high";
-  status: "pending" | "in-progress" | "resolved";
-  submittedBy: string;
-  submittedAt: Date;
-  unit?: string;
-};
+import type { Issue } from "@/hooks/useIssues";
 
 interface IssueCardProps {
   issue: Issue;

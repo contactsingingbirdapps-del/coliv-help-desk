@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle } from "lucide-react";
-import type { Issue } from "./IssueCard";
+import type { CreateIssueData } from "@/hooks/useIssues";
 
 interface IssueFormProps {
-  onSubmit: (issue: Omit<Issue, "id" | "submittedAt" | "status">) => void;
+  onSubmit: (issue: CreateIssueData) => Promise<void>;
 }
 
 const categories = [
@@ -25,6 +25,7 @@ const categories = [
 
 export const IssueForm = ({ onSubmit }: IssueFormProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -35,7 +36,7 @@ export const IssueForm = ({ onSubmit }: IssueFormProps) => {
   });
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.description || !formData.category || !formData.submittedBy) {
@@ -47,21 +48,23 @@ export const IssueForm = ({ onSubmit }: IssueFormProps) => {
       return;
     }
 
-    onSubmit(formData);
-    setFormData({
-      title: "",
-      description: "",
-      category: "",
-      priority: "medium",
-      submittedBy: "",
-      unit: ""
-    });
-    setIsOpen(false);
-    
-    toast({
-      title: "Issue Reported",
-      description: "Your issue has been submitted successfully.",
-    });
+    try {
+      setIsSubmitting(true);
+      await onSubmit(formData);
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        priority: "medium",
+        submittedBy: "",
+        unit: ""
+      });
+      setIsOpen(false);
+    } catch (error) {
+      // Error handling is done in the useIssues hook
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) {
@@ -160,13 +163,14 @@ export const IssueForm = ({ onSubmit }: IssueFormProps) => {
           </div>
 
           <div className="flex gap-2">
-            <Button type="submit" className="flex-1">
-              Submit Issue
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit Issue"}
             </Button>
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => setIsOpen(false)}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
