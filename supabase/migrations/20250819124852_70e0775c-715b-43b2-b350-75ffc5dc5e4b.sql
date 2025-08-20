@@ -52,10 +52,3 @@ CREATE INDEX idx_issues_priority ON public.issues(priority);
 CREATE INDEX idx_issues_category ON public.issues(category);
 CREATE INDEX idx_issues_created_at ON public.issues(created_at DESC);
 
--- Insert sample data
-INSERT INTO public.issues (title, description, category, priority, status, submitted_by, unit) VALUES
-('Leaky faucet in kitchen', 'The kitchen faucet has been dripping constantly for the past week. It''s wasting water and making noise at night.', 'plumbing', 'medium', 'pending', 'Alice Johnson', 'A'),
-('Broken washing machine', 'The washing machine in the basement is not spinning properly. Clothes come out still very wet.', 'appliances', 'high', 'in-progress', 'Bob Smith', 'B'),
-('Noisy neighbors', 'Neighbors in unit C have been playing loud music late at night. This has been going on for several days.', 'noise complaint', 'low', 'pending', 'Carol Davis', 'D'),
-('Heating not working', 'The heating system in my apartment is not working. It''s getting quite cold, especially at night.', 'heating', 'high', 'resolved', 'David Wilson', 'C'),
-('Parking space conflict', 'Someone keeps parking in my assigned parking space #15. This needs to be addressed.', 'parking', 'medium', 'pending', 'Eve Brown', 'A');
