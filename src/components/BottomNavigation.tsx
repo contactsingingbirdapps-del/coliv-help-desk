@@ -1,4 +1,4 @@
-import { Home, Plus, User } from "lucide-react";
+import { Home, Plus } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -17,18 +17,12 @@ const BottomNavigation = () => {
       icon: Plus,
       label: "Report",
       isActive: location.pathname === "/"
-    },
-    {
-      to: "/profile",
-      icon: User,
-      label: "Profile",
-      isActive: location.pathname === "/profile"
     }
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-      <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
+      <div className="flex items-center justify-center gap-8 py-2 px-4 max-w-md mx-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
