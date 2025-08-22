@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { BarChart3 } from "lucide-react";
 
 const Index = () => {
   const { 
@@ -27,7 +29,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-20">
         <Header pendingCount={0} />
         <main className="container mx-auto px-4 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -53,7 +55,7 @@ const Index = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-20">
         <Header pendingCount={0} />
         <main className="container mx-auto px-4 py-6">
           <Card className="p-6">
@@ -72,10 +74,23 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <Header pendingCount={pendingCount} />
       
       <main className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Report Issue</h1>
+            <p className="text-muted-foreground">Help us improve your living experience</p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/dashboard">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Dashboard
+            </Link>
+          </Button>
+        </div>
+        
         <StatsOverview issues={issues} />
         
         <IssueForm onSubmit={handleNewIssue} />
