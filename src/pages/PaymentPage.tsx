@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowUpRight, ArrowDownLeft, Plus } from "lucide-react";
 
 declare global {
   interface Window {
@@ -9,8 +10,58 @@ declare global {
   }
 }
 
+interface Transaction {
+  id: string;
+  type: 'sent' | 'received';
+  amount: number;
+  name: string;
+  avatar: string;
+  date: string;
+  time: string;
+}
+
 const PaymentPage = () => {
   const { toast } = useToast();
+  
+  // Dummy UPI transaction history
+  const transactions: Transaction[] = [
+    {
+      id: '1',
+      type: 'sent',
+      amount: 250,
+      name: 'Amit Sharma',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+      date: 'Today',
+      time: '2:30 PM'
+    },
+    {
+      id: '2',
+      type: 'received',
+      amount: 1200,
+      name: 'Priya Singh',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+      date: 'Yesterday',
+      time: '11:15 AM'
+    },
+    {
+      id: '3',
+      type: 'sent',
+      amount: 75,
+      name: 'Ravi Kumar',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
+      date: 'Yesterday',
+      time: '9:45 AM'
+    },
+    {
+      id: '4',
+      type: 'received',
+      amount: 500,
+      name: 'Sneha Patel',
+      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+      date: '2 days ago',
+      time: '4:20 PM'
+    }
+  ];
   
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -66,39 +117,72 @@ const PaymentPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-4">
-      <div className="max-w-md mx-auto pt-8 pb-20">
-        <Card className="border-0 shadow-lg bg-card/95 backdrop-blur">
-          <CardContent className="p-8 text-center space-y-6">
-            {/* Profile Image */}
-            <div className="flex justify-center">
-              <Avatar className="w-24 h-24 ring-4 ring-primary/20">
+    <div className="min-h-screen bg-background p-4 pb-20">
+      <div className="max-w-md mx-auto space-y-4">
+        
+        {/* UPI History Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {transactions.map((transaction) => (
+              <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={transaction.avatar} alt={transaction.name} />
+                    <AvatarFallback>{transaction.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-sm">{transaction.name}</p>
+                    <p className="text-xs text-muted-foreground">{transaction.date} • {transaction.time}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className={`text-sm font-semibold ${
+                    transaction.type === 'sent' ? 'text-red-500' : 'text-green-500'
+                  }`}>
+                    {transaction.type === 'sent' ? '-' : '+'}₹{transaction.amount}
+                  </div>
+                  {transaction.type === 'sent' ? (
+                    <ArrowUpRight className="w-4 h-4 text-red-500" />
+                  ) : (
+                    <ArrowDownLeft className="w-4 h-4 text-green-500" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Payment Options Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Quick Payment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Profile and Amount */}
+            <div className="text-center space-y-3">
+              <Avatar className="w-16 h-16 mx-auto">
                 <AvatarImage 
                   src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" 
                   alt="John Doe"
                 />
-                <AvatarFallback className="text-2xl font-semibold">JD</AvatarFallback>
+                <AvatarFallback className="text-lg">JD</AvatarFallback>
               </Avatar>
+              <div>
+                <h3 className="font-semibold">John Doe</h3>
+                <p className="text-2xl font-bold text-primary">₹500</p>
+              </div>
             </div>
 
-            {/* User Name */}
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">John Doe</h1>
-              <p className="text-muted-foreground text-sm">UPI Payment</p>
-            </div>
-
-            {/* Amount */}
-            <div className="py-6">
-              <div className="text-4xl font-bold text-primary">₹500</div>
-              <p className="text-muted-foreground text-sm mt-1">Amount to pay</p>
-            </div>
-
-            {/* Pay Now Button */}
+            {/* Payment Button */}
             <Button 
               onClick={handlePayment}
               size="lg"
-              className="w-full h-14 text-lg font-semibold"
+              className="w-full h-12 text-base font-semibold"
             >
+              <Plus className="w-5 h-5 mr-2" />
               Pay Now
             </Button>
           </CardContent>
