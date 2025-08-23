@@ -61,6 +61,24 @@ const PaymentPage = () => {
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
       date: '2 days ago',
       time: '4:20 PM'
+    },
+    {
+      id: '1',
+      type: 'sent',
+      amount: 250,
+      name: 'Amit Sharma',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+      date: 'Today',
+      time: '2:30 PM'
+    },
+    {
+      id: '2',
+      type: 'received',
+      amount: 1200,
+      name: 'Priya Singh',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+      date: 'Yesterday',
+      time: '11:15 AM'
     }
   ];
   
@@ -91,8 +109,8 @@ const PaymentPage = () => {
     }
 
     const options = {
-      key: 'rzp_test_123456789',
-      amount: 50000, // ₹500 in paise
+      key: 'rzp_test_VSkkDl7N8oIENZ',
+      amount: 100, // ₹500 in paise
       currency: 'INR',
       name: 'John Doe',
       description: 'UPI Payment',
