@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowUpRight, ArrowDownLeft, Plus } from "lucide-react";
+import { Header } from "@/components/Header";
 
 declare global {
   interface Window {
@@ -117,8 +118,10 @@ const PaymentPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 pb-20">
-      <div className="max-w-md mx-auto space-y-4">
+    <div className="min-h-screen bg-background">
+      <Header pendingCount={0} />
+      <div className="p-4 pb-20">
+        <div className="max-w-md mx-auto space-y-4">
         
         {/* UPI History Section */}
         <Card>
@@ -164,6 +167,7 @@ const PaymentPage = () => {
           <Plus className="w-5 h-5 mr-2" />
           Pay Now
         </Button>
+        </div>
       </div>
     </div>
   );
