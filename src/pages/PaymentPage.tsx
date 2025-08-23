@@ -155,38 +155,15 @@ const PaymentPage = () => {
           </CardContent>
         </Card>
 
-        {/* Payment Options Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Quick Payment</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Profile and Amount */}
-            <div className="text-center space-y-3">
-              <Avatar className="w-16 h-16 mx-auto">
-                <AvatarImage 
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" 
-                  alt="John Doe"
-                />
-                <AvatarFallback className="text-lg">JD</AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 className="font-semibold">John Doe</h3>
-                <p className="text-2xl font-bold text-primary">₹500</p>
-              </div>
-            </div>
-
-            {/* Payment Button */}
-            <Button 
-              onClick={handlePayment}
-              size="lg"
-              className="w-full h-12 text-base font-semibold"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Pay Now
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Payment Button */}
+        <Button 
+          onClick={handlePayment}
+          size="lg"
+          className="w-full h-12 text-base font-semibold"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Pay Now
+        </Button>
       </div>
     </div>
   );
