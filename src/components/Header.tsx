@@ -1,12 +1,40 @@
-import { Building2, Settings, Bell } from "lucide-react";
+import { Building2, Settings, Bell, User, LogOut, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   pendingCount: number;
 }
 
 export const Header = ({ pendingCount }: HeaderProps) => {
+  const { user, signOut, isSkipped } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You've been successfully signed out.",
+      });
+    }
+  };
+
+  const getUserInitials = (email: string) => {
+    return email.charAt(0).toUpperCase();
+  };
+
   return (
     <header className="border-b bg-card">
       <div className="container mx-auto px-4 py-4">
@@ -32,6 +60,24 @@ export const Header = ({ pendingCount }: HeaderProps) => {
                 </Badge>
               )}
             </div>
+            
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs">
+                    {getUserInitials(user.email || 'U')}
+                  </AvatarFallback>
+                </Avatar>
+                <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
+            ) : !isSkipped ? (
+              <Button variant="ghost" size="icon" onClick={() => navigate('/auth')}>
+                <LogIn className="h-5 w-5" />
+              </Button>
+            ) : null}
+            
             <Button variant="ghost" size="icon">
               <Settings className="h-5 w-5" />
             </Button>
