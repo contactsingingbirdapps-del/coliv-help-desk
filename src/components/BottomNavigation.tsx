@@ -1,4 +1,4 @@
-import { Home, Plus, CreditCard } from "lucide-react";
+import { Home, Plus, CreditCard, Users } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,12 @@ const BottomNavigation = () => {
       icon: Plus,
       label: "Report",
       isActive: location.pathname === "/"
+    },
+    {
+      to: "/residents",
+      icon: Users,
+      label: "Residents",
+      isActive: location.pathname === "/residents"
     },
     {
       to: "/payment",
