@@ -8,6 +8,10 @@ import Dashboard from "./pages/Dashboard";
 import PaymentPage from "./pages/PaymentPage";
 import AuthPage from "./pages/AuthPage";
 import ResidentsPage from "./pages/ResidentsPage";
+import SettingsPage from "./pages/SettingsPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+
+import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import BottomNavigation from "./components/BottomNavigation";
 
@@ -26,6 +30,9 @@ const App = () => (
               <Route path="/residents" element={<ResidentsPage />} />
               <Route path="/payment" element={<PaymentPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <BottomNavigation />
