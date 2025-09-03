@@ -158,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const skipAuth = () => {
     localStorage.setItem('auth_skipped', 'true');
     setIsSkipped(true);
+    setLoading(false); // Important: Set loading to false when skipping
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
