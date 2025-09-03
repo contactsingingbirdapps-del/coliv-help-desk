@@ -7,6 +7,7 @@ const supabase = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

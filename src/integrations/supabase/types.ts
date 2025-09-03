@@ -80,6 +80,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          id: string
+          user_id: string | null
+          razorpay_payment_id: string
+          amount: number
+          currency: string
+          status: string
+          description: string | null
+          payment_method: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          razorpay_payment_id: string
+          amount: number
+          currency?: string
+          status: string
+          description?: string | null
+          payment_method?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          razorpay_payment_id?: string
+          amount?: number
+          currency?: string
+          status?: string
+          description?: string | null
+          payment_method?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

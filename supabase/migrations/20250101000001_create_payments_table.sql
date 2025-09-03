@@ -23,13 +23,13 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
 CREATE POLICY "Users can view their own payments" ON public.payments
-    FOR SELECT USING (auth.uid() = user_id);
+    FOR SELECT USING (auth.uid() = user_id OR user_id IS NULL);
 
 CREATE POLICY "Users can insert their own payments" ON public.payments
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+    FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
 
 CREATE POLICY "Users can update their own payments" ON public.payments
-    FOR UPDATE USING (auth.uid() = user_id);
+    FOR UPDATE USING (auth.uid() = user_id OR user_id IS NULL);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
