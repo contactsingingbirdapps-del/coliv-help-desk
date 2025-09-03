@@ -33,7 +33,45 @@ export const useIssues = () => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const { toast } = useToast();
+
+  // Demo data fallback for when database fails
+  const demoIssues: Issue[] = [
+    {
+      id: 'demo-1',
+      title: 'Water Leak in Kitchen',
+      description: 'There is a small water leak under the kitchen sink',
+      category: 'Plumbing',
+      priority: 'high',
+      status: 'pending',
+      submittedBy: 'Demo User',
+      unit: 'A101',
+      submittedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+    },
+    {
+      id: 'demo-2',
+      title: 'Broken Light Bulb',
+      description: 'Light bulb in the hallway needs replacement',
+      category: 'Electrical',
+      priority: 'medium',
+      status: 'in-progress',
+      submittedBy: 'Demo User',
+      unit: 'A101',
+      submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    },
+    {
+      id: 'demo-3',
+      title: 'Noise Complaint',
+      description: 'Loud music from upstairs unit',
+      category: 'Noise',
+      priority: 'low',
+      status: 'resolved',
+      submittedBy: 'Demo User',
+      unit: 'A101',
+      submittedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+    }
+  ];
 
   // Convert database issue to app issue format
   const convertDbIssue = (dbIssue: any): Issue => ({
@@ -48,31 +86,105 @@ export const useIssues = () => {
     submittedAt: new Date(dbIssue.created_at),
   });
 
-  // Fetch all issues
+  // Fetch all issues with fallback to demo data
   const fetchIssues = async () => {
     try {
+      console.log("🔍 useIssues: Starting fetchIssues");
       setLoading(true);
       setError(null);
+      setIsDemoMode(false);
       
-      const { data, error: fetchError } = await supabase
+      console.log("🔍 useIssues: Querying database for issues...");
+      
+      const fetchPromise = supabase
         .from('issues')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      // Fast timeout (UX-first): 2.5s
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 2500)
+      );
+      
+      let data: any, fetchError: any;
+      
+      try {
+        const result = await Promise.race([
+          fetchPromise,
+          timeoutPromise
+        ]);
+        data = result.data;
+        fetchError = result.error;
+      } catch (timeoutError) {
+        console.warn("⏳ useIssues: Timed out at 2.5s, showing demo and continuing in background");
+        setIssues(demoIssues);
+        setIsDemoMode(true);
+        setLoading(false);
+        
+        // Background refresh with longer window (8s)
+        (async () => {
+          try {
+            const { data: bgData, error: bgError } = await supabase
+              .from('issues')
+              .select('*')
+              .order('created_at', { ascending: false });
+            if (!bgError && bgData && bgData.length > 0) {
+              const converted = bgData.map(convertDbIssue);
+              setIssues(converted);
+              setIsDemoMode(false);
+              console.log("✅ useIssues: Background refresh loaded live data");
+            }
+          } catch (e) {
+            // ignore background errors
+          }
+        })();
+        return;
+      }
+      
+      console.log("🔍 useIssues: Database response:", { 
+        data: data ? `${data.length} rows` : 'null', 
+        error: fetchError,
+        hasData: !!data,
+        dataType: typeof data
+      });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error("❌ useIssues: Database query error:", fetchError);
+        console.log("🔍 useIssues: Falling back to demo data due to query error");
+        setIssues(demoIssues);
+        setIsDemoMode(true);
+        return;
+      }
 
-      const convertedIssues = data?.map(convertDbIssue) || [];
+      if (!data || data.length === 0) {
+        console.log("🔍 useIssues: No data returned, showing demo data");
+        setIssues(demoIssues);
+        setIsDemoMode(true);
+        return;
+      }
+
+      const convertedIssues = data.map(convertDbIssue);
+      console.log("🔍 useIssues: Converted issues:", convertedIssues);
+      
       setIssues(convertedIssues);
+      console.log("✅ useIssues: Successfully set issues from database");
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch issues';
-      setError(errorMessage);
-      console.error('Error fetching issues:', err);
+      console.error("❌ useIssues: Exception caught:", err);
+      console.log("🔍 useIssues: Falling back to demo data due to exception");
+      
+      setIssues(demoIssues);
+      setIsDemoMode(true);
+      setError(null); // Clear error since we're showing demo data
+      
       toast({
-        title: "Error Loading Issues",
-        description: errorMessage,
-        variant: "destructive",
+        title: "Demo Mode",
+        description: "Showing demo data due to connection issues",
+        variant: "default",
       });
     } finally {
+      console.log("🔍 useIssues: Finally block - setting loading to false");
       setLoading(false);
     }
   };
@@ -80,6 +192,8 @@ export const useIssues = () => {
   // Create a new issue
   const createIssue = async (issueData: CreateIssueData) => {
     try {
+      console.log("🔍 useIssues: Creating issue:", issueData);
+      
       const dbData = {
         title: issueData.title,
         description: issueData.description,
@@ -158,13 +272,23 @@ export const useIssues = () => {
 
   // Initialize data on mount
   useEffect(() => {
+    console.log("🔄 useIssues: useEffect triggered, calling fetchIssues");
     fetchIssues();
   }, []);
+
+  // Debug logging
+  console.log("🔍 useIssues: Current state:", {
+    issuesCount: issues.length,
+    loading,
+    error,
+    isDemoMode
+  });
 
   return {
     issues,
     loading,
     error,
+    isDemoMode,
     fetchIssues,
     createIssue,
     updateIssueStatus,

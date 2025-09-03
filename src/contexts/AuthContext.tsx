@@ -47,21 +47,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from database
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      console.log("🔍 AuthContext: Fetching profile for user:", userId);
+      
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+      
+      // 2.5 second timeout for profile fetch
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 2500)
+      );
+      
+      let data: any, error: any;
+      
+      try {
+        const result = await Promise.race([
+          profilePromise,
+          timeoutPromise
+        ]);
+        data = result.data;
+        error = result.error;
+      } catch (timeoutError) {
+        console.warn("⏳ AuthContext: Profile fetch timed out, continuing without profile");
+        return;
+      }
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error fetching profile:', error);
+        console.error('❌ AuthContext: Error fetching profile:', error);
         return;
       }
 
       if (data) {
+        console.log("✅ AuthContext: Profile found:", data);
         setProfile(data);
       } else {
-        // Create profile if it doesn't exist
+        console.log("📝 AuthContext: Creating new profile for user:", userId);
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert([
@@ -76,13 +98,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .single();
 
         if (createError) {
-          console.error('Error creating profile:', createError);
+          console.error('❌ AuthContext: Error creating profile:', createError);
         } else {
+          console.log("✅ AuthContext: New profile created:", newProfile);
           setProfile(newProfile);
         }
       }
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('❌ AuthContext: Exception in fetchProfile:', error);
     }
   };
 
@@ -110,17 +133,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      }
-      
-      setLoading(false);
-    });
+    // Get initial session (2.5s timeout)
+    const sessionPromise = supabase.auth.getSession();
+    const sessionTimeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Session fetch timeout')), 2500)
+    );
+
+    Promise.race([sessionPromise, sessionTimeoutPromise])
+      .then(async ({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        }
+        
+        setLoading(false);
+      })
+      .catch(() => {
+        console.warn("⏳ AuthContext: Session fetch timed out, proceeding as guest");
+        setLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
