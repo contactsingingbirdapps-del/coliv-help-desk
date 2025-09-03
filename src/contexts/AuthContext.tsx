@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       // 2.5 second timeout for profile fetch
       const timeoutPromise = new Promise<never>((_, reject) => 
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned (for .single)
         console.error('❌ AuthContext: Error fetching profile:', error);
         return;
       }
@@ -80,24 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data) {
         setProfile(data);
       } else {
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: userId,
-              full_name: user?.user_metadata?.full_name || null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }
-          ])
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('❌ AuthContext: Error creating profile:', createError);
-        } else {
-          setProfile(newProfile);
-        }
+        // Do not attempt client-side insert; rely on auth trigger to create profile
+        // Simply return and allow app to work without profile
+        return;
       }
     } catch (error) {
       console.error('❌ AuthContext: Exception in fetchProfile:', error);
@@ -146,7 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       })
       .catch(() => {
-        console.warn("⏳ AuthContext: Session fetch timed out, proceeding as guest");
         setLoading(false);
       });
 
