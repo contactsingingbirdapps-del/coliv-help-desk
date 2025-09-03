@@ -89,12 +89,9 @@ export const useIssues = () => {
   // Fetch all issues with fallback to demo data
   const fetchIssues = async () => {
     try {
-      console.log("🔍 useIssues: Starting fetchIssues");
       setLoading(true);
       setError(null);
       setIsDemoMode(false);
-      
-      console.log("🔍 useIssues: Querying database for issues...");
       
       const fetchPromise = supabase
         .from('issues')
@@ -116,7 +113,6 @@ export const useIssues = () => {
         data = result.data;
         fetchError = result.error;
       } catch (timeoutError) {
-        console.warn("⏳ useIssues: Timed out at 2.5s, showing demo and continuing in background");
         setIssues(demoIssues);
         setIsDemoMode(true);
         setLoading(false);
@@ -132,7 +128,6 @@ export const useIssues = () => {
               const converted = bgData.map(convertDbIssue);
               setIssues(converted);
               setIsDemoMode(false);
-              console.log("✅ useIssues: Background refresh loaded live data");
             }
           } catch (e) {
             // ignore background errors
@@ -141,38 +136,25 @@ export const useIssues = () => {
         return;
       }
       
-      console.log("🔍 useIssues: Database response:", { 
-        data: data ? `${data.length} rows` : 'null', 
-        error: fetchError,
-        hasData: !!data,
-        dataType: typeof data
-      });
-
       if (fetchError) {
         console.error("❌ useIssues: Database query error:", fetchError);
-        console.log("🔍 useIssues: Falling back to demo data due to query error");
         setIssues(demoIssues);
         setIsDemoMode(true);
         return;
       }
 
       if (!data || data.length === 0) {
-        console.log("🔍 useIssues: No data returned, showing demo data");
         setIssues(demoIssues);
         setIsDemoMode(true);
         return;
       }
 
       const convertedIssues = data.map(convertDbIssue);
-      console.log("🔍 useIssues: Converted issues:", convertedIssues);
-      
       setIssues(convertedIssues);
-      console.log("✅ useIssues: Successfully set issues from database");
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch issues';
       console.error("❌ useIssues: Exception caught:", err);
-      console.log("🔍 useIssues: Falling back to demo data due to exception");
       
       setIssues(demoIssues);
       setIsDemoMode(true);
@@ -184,7 +166,6 @@ export const useIssues = () => {
         variant: "default",
       });
     } finally {
-      console.log("🔍 useIssues: Finally block - setting loading to false");
       setLoading(false);
     }
   };
@@ -272,17 +253,8 @@ export const useIssues = () => {
 
   // Initialize data on mount
   useEffect(() => {
-    console.log("🔄 useIssues: useEffect triggered, calling fetchIssues");
     fetchIssues();
   }, []);
-
-  // Debug logging
-  console.log("🔍 useIssues: Current state:", {
-    issuesCount: issues.length,
-    loading,
-    error,
-    isDemoMode
-  });
 
   return {
     issues,

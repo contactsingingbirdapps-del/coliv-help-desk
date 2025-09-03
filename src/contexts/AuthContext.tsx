@@ -47,7 +47,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from database
   const fetchProfile = async (userId: string) => {
     try {
-      console.log("🔍 AuthContext: Fetching profile for user:", userId);
       
       const profilePromise = supabase
         .from('profiles')
@@ -70,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data = result.data;
         error = result.error;
       } catch (timeoutError) {
-        console.warn("⏳ AuthContext: Profile fetch timed out, continuing without profile");
         return;
       }
 
@@ -80,10 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data) {
-        console.log("✅ AuthContext: Profile found:", data);
         setProfile(data);
       } else {
-        console.log("📝 AuthContext: Creating new profile for user:", userId);
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert([
@@ -100,7 +96,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (createError) {
           console.error('❌ AuthContext: Error creating profile:', createError);
         } else {
-          console.log("✅ AuthContext: New profile created:", newProfile);
           setProfile(newProfile);
         }
       }

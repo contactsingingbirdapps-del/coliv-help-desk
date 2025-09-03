@@ -50,9 +50,6 @@ const PaymentPage = () => {
       setError(null);
       setDebugInfo("Fetching payments...");
       
-      console.log("🔍 Starting fetchPayments");
-      console.log("🔍 Auth state:", { user: user?.id, authLoading, isSkipped });
-      
       // If truly no identity and not skipping, show quick demo
       if (!user?.id && !isSkipped) {
         setDebugInfo("No user and not skipped - showing demo data");
@@ -87,7 +84,6 @@ const PaymentPage = () => {
         data = result.data;
         error = result.error;
       } catch (e) {
-        console.warn("⏳ Payments: timed out at 2.5s, showing last known/demo and refreshing in background");
         if (transactions.length === 0) {
           setTransactions([
             {
@@ -135,7 +131,7 @@ const PaymentPage = () => {
         return;
       }
 
-      console.log("✅ Fetched payments data:", data);
+      
       const mapped: Transaction[] = (data || []).map((p: any) => ({
         id: p.razorpay_payment_id || p.id,
         type: "received",
@@ -316,8 +312,7 @@ const PaymentPage = () => {
   };
 
   useEffect(() => {
-    console.log("🔄 PaymentPage useEffect triggered");
-    console.log("🔄 Auth state:", { user: user?.id, authLoading, isSkipped });
+    
     
     // Fetch immediately; don't block on auth. Data will adapt when user changes.
     fetchPayments();
@@ -325,7 +320,6 @@ const PaymentPage = () => {
 
   // Show loading skeleton while auth is loading
   if (authLoading) {
-    console.log("🔄 Showing auth loading skeleton");
     return (
       <div className="min-h-screen bg-background">
         <Header pendingCount={0} />
