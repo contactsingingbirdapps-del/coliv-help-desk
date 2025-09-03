@@ -154,7 +154,7 @@ export const useIssues = () => {
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch issues';
-      console.error("❌ useIssues: Exception caught:", err);
+      console.error("❌ useIssues: Exception caught:", errorMessage);
       
       setIssues(demoIssues);
       setIsDemoMode(true);
