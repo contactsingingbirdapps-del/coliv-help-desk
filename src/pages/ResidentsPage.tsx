@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/firebase/client";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
@@ -23,16 +24,10 @@ const ResidentsPage = () => {
 
   const fetchProfiles = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("full_name");
-
-      if (error) {
-        throw error;
-      }
-
-      setProfiles(data || []);
+      const q = query(collection(db, 'profiles'), orderBy('full_name'));
+      const snapshot = await getDocs(q);
+      const rows = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Profile[];
+      setProfiles(rows || []);
     } catch (error) {
       console.error("Error fetching profiles:", error);
       toast({

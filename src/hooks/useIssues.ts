@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/firebase/client";
+import { collection, getDocs, addDoc, orderBy, query, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export type DatabaseIssue = {
@@ -93,10 +94,12 @@ export const useIssues = () => {
       setError(null);
       setIsDemoMode(false);
       
-      const fetchPromise = supabase
-        .from('issues')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const fetchPromise = (async () => {
+        const q = query(collection(db, 'issues'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        const rows = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        return { data: rows, error: null } as any;
+      })();
       
       // Fast timeout (UX-first): 2.5s
       const timeoutPromise = new Promise<never>((_, reject) => 
@@ -120,18 +123,15 @@ export const useIssues = () => {
         // Background refresh with longer window (8s)
         (async () => {
           try {
-            const { data: bgData, error: bgError } = await supabase
-              .from('issues')
-              .select('*')
-              .order('created_at', { ascending: false });
-            if (!bgError && bgData && bgData.length > 0) {
+            const q = query(collection(db, 'issues'), orderBy('createdAt', 'desc'));
+            const snapshot = await getDocs(q);
+            const bgData: any[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (bgData && bgData.length > 0) {
               const converted = bgData.map(convertDbIssue);
               setIssues(converted);
               setIsDemoMode(false);
             }
-          } catch (e) {
-            // ignore background errors
-          }
+          } catch {}
         })();
         return;
       }
@@ -154,7 +154,7 @@ export const useIssues = () => {
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch issues';
-      console.error("❌ useIssues: Exception caught:", errorMessage);
+      console.error("❌ useIssues: Exception caught:", err);
       
       setIssues(demoIssues);
       setIsDemoMode(true);
@@ -182,17 +182,14 @@ export const useIssues = () => {
         priority: issueData.priority,
         submitted_by: issueData.submittedBy,
         unit: issueData.unit || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
 
-      const { data, error: createError } = await supabase
-        .from('issues')
-        .insert([dbData])
-        .select()
-        .single();
-
-      if (createError) throw createError;
-
-      const newIssue = convertDbIssue(data as any);
+      const ref = await addDoc(collection(db, 'issues'), dbData as any);
+      const newIssue = convertDbIssue({ id: ref.id, ...dbData } as any);
       setIssues(prev => [newIssue, ...prev]);
       
       toast({
@@ -216,12 +213,7 @@ export const useIssues = () => {
   // Update issue status
   const updateIssueStatus = async (id: string, status: Issue["status"]) => {
     try {
-      const { error: updateError } = await supabase
-        .from('issues')
-        .update({ status })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
+      await updateDoc(doc(db, 'issues', id), { status, updated_at: new Date().toISOString(), updatedAt: serverTimestamp() });
 
       setIssues(prev => 
         prev.map(issue => 

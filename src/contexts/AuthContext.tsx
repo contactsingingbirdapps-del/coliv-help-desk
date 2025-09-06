@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { auth, db, FirebaseUser } from '@/integrations/firebase/client';
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, updateProfile as updateFirebaseProfile } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface UserProfile {
   id: string;
@@ -14,8 +15,8 @@ interface UserProfile {
 }
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: FirebaseUser | null;
+  session: null;
   profile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
@@ -38,8 +39,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [session] = useState<null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSkipped, setIsSkipped] = useState(false);
@@ -47,42 +48,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from database
   const fetchProfile = async (userId: string) => {
     try {
-      
-      const profilePromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      // 2.5 second timeout for profile fetch
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 2500)
-      );
-      
-      let data: any, error: any;
-      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       try {
-        const result = await Promise.race([
-          profilePromise,
-          timeoutPromise
-        ]);
-        data = result.data;
-        error = result.error;
-      } catch (timeoutError) {
-        return;
-      }
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned (for .single)
-        console.error('❌ AuthContext: Error fetching profile:', error);
-        return;
-      }
-
-      if (data) {
-        setProfile(data);
-      } else {
-        // Do not attempt client-side insert; rely on auth trigger to create profile
-        // Simply return and allow app to work without profile
-        return;
+        const ref = doc(db, 'profiles', userId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          setProfile({
+            id: userId,
+            full_name: data.full_name,
+            phone: data.phone,
+            unit: data.unit,
+            bio: data.bio,
+            avatar_url: data.avatar_url,
+            created_at: data.created_at || new Date().toISOString(),
+            updated_at: data.updated_at || new Date().toISOString(),
+          });
+        } else {
+          return;
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
     } catch (error) {
       console.error('❌ AuthContext: Exception in fetchProfile:', error);
@@ -94,77 +81,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const skipped = localStorage.getItem('auth_skipped') === 'true';
     setIsSkipped(skipped);
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-          // Clear skip state if user logs in
-          localStorage.removeItem('auth_skipped');
-          setIsSkipped(false);
-        } else {
-          setProfile(null);
-        }
-        
-        setLoading(false);
+    // Set up Firebase auth state listener
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        await fetchProfile(currentUser.uid);
+        localStorage.removeItem('auth_skipped');
+        setIsSkipped(false);
+      } else {
+        setProfile(null);
       }
-    );
+      setLoading(false);
+    });
 
-    // Get initial session (2.5s timeout)
-    const sessionPromise = supabase.auth.getSession();
-    const sessionTimeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Session fetch timeout')), 2500)
-    );
-
-    Promise.race([sessionPromise, sessionTimeoutPromise])
-      .then(async ({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        }
-        
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: fullName ? { full_name: fullName } : undefined
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (fullName && cred.user) {
+        await updateFirebaseProfile(cred.user, { displayName: fullName });
       }
-    });
-    return { error };
+      // Create initial profile document
+      await setDoc(doc(db, 'profiles', cred.user.uid), {
+        id: cred.user.uid,
+        full_name: fullName || cred.user.displayName || null,
+        phone: null,
+        unit: null,
+        bio: null,
+        avatar_url: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    return { error };
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
+    try {
+      await firebaseSignOut(auth);
       setProfile(null);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
     }
-    return { error };
   };
 
   const skipAuth = () => {
@@ -177,35 +151,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) {
       return { error: { message: 'No user logged in' } };
     }
-
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        return { error };
+      if (typeof updates.full_name === 'string') {
+        await updateFirebaseProfile(user, { displayName: updates.full_name });
       }
+      const ref = doc(db, 'profiles', user.uid);
+      await setDoc(ref, {
+        ...updates,
+        updated_at: new Date().toISOString(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
 
-      if (data) {
-        setProfile(data);
-      }
-
+      // Refresh local profile
+      await fetchProfile(user.uid);
       return { error: null };
-    } catch (error) {
-      return { error: { message: 'Failed to update profile' } };
+    } catch (error: any) {
+      return { error };
     }
   };
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchProfile(user.id);
+      await fetchProfile(user.uid);
     }
   };
 

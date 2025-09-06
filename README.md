@@ -34,7 +34,7 @@ A comprehensive help desk application designed for co-living communities to mana
 
 - **Frontend**: React 18 + TypeScript
 - **UI Components**: Shadcn/ui + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **Backend**: Firebase (Auth + Firestore)
 - **State Management**: React Context + React Query
 - **Routing**: React Router DOM
 - **Charts**: Recharts
@@ -60,7 +60,7 @@ A comprehensive help desk application designed for co-living communities to mana
 ### Prerequisites
 - Node.js 18+ 
 - npm or yarn
-- Supabase account and project
+- Firebase project (enable Authentication and Firestore)
 
 ### Installation Steps
 
@@ -76,10 +76,14 @@ A comprehensive help desk application designed for co-living communities to mana
    ```
 
 3. **Environment Setup**
-   Create a `.env.local` file with your Supabase credentials:
+   Create a `.env.local` file with your Firebase credentials:
    ```env
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
    ```
 
 4. **Database Setup**
@@ -99,29 +103,16 @@ A comprehensive help desk application designed for co-living communities to mana
    npm run build
    ```
 
-## 🗄️ Database Schema
+## 🗄️ Database Collections (Firestore)
 
-### Profiles Table
-```sql
-CREATE TABLE profiles (
-    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-    full_name TEXT,
-    phone TEXT,
-    unit TEXT,
-    bio TEXT,
-    avatar_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-### Issues Table (existing)
-- Standard issue tracking with categories, priorities, and status
+- **profiles**: `{ id, full_name, phone, unit, bio, avatar_url, created_at, updated_at }`
+- **issues**: `{ title, description, category, priority, status, submitted_by, unit, created_at, updated_at }`
+- **payments**: `{ user_id, razorpay_payment_id, amount, currency, status, payment_method, created_at, updated_at }`
 
 ## 🔐 Authentication & Security
 
-- **Supabase Auth**: Secure user authentication
-- **Row Level Security**: Database-level security policies
+- **Firebase Auth**: Secure user authentication
+- **Firestore Security Rules**: Client-enforced access control
 - **Profile Management**: User profile data with proper access controls
 - **Skip Authentication**: Option to use app without account (limited features)
 

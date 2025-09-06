@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowUpRight, ArrowDownLeft, Plus, RefreshCw, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/integrations/firebase/client";
+import { collection, getDocs, addDoc, orderBy, query as fsQuery, serverTimestamp } from "firebase/firestore";
 
 declare global {
   interface Window {
@@ -51,7 +52,7 @@ const PaymentPage = () => {
       setDebugInfo("Fetching payments...");
       
       // If truly no identity and not skipping, show quick demo
-      if (!user?.id && !isSkipped) {
+      if (!user?.uid && !isSkipped) {
         setDebugInfo("No user and not skipped - showing demo data");
         setTransactions([
           {
@@ -70,19 +71,26 @@ const PaymentPage = () => {
 
       setDebugInfo("Fetching from database...");
 
-      const query = supabase
-        .from("payments")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const q = fsQuery(collection(db, 'payments'), orderBy('createdAt', 'desc'));
 
       // Fast timeout 2.5s for UX
       const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Payments fetch timeout')), 2500));
 
-      let data: any, error: any;
       try {
-        const result = await Promise.race([query, timeout]);
-        data = result.data;
-        error = result.error;
+        const result = await Promise.race([(async () => await getDocs(q))(), timeout]);
+        const data = (result as any).docs.map((d: any) => ({ id: d.id, ...d.data() }));
+        const mapped: Transaction[] = (data || []).map((p: any) => ({
+          id: p.razorpay_payment_id || p.id,
+          type: "received",
+          amount: p.amount,
+          name: "Maintenance Payment",
+          avatar:
+            "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+          date: new Date(p.created_at).toLocaleDateString(),
+          time: new Date(p.created_at).toLocaleTimeString(),
+        }));
+        setTransactions(mapped);
+        setDebugInfo(`Loaded ${mapped.length} payments`);
       } catch (e) {
         if (transactions.length === 0) {
           setTransactions([
@@ -101,50 +109,24 @@ const PaymentPage = () => {
         // background refresh (no timeout)
         (async () => {
           try {
-            const { data: bg, error: bgErr } = await supabase
-              .from("payments")
-              .select("*")
-              .order("created_at", { ascending: false });
-            if (!bgErr && bg) {
-              const mapped: Transaction[] = (bg || []).map((p: any) => ({
-                id: p.razorpay_payment_id || p.id,
-                type: "received",
-                amount: p.amount,
-                name: "Maintenance Payment",
-                avatar:
-                  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-                date: new Date(p.created_at).toLocaleDateString(),
-                time: new Date(p.created_at).toLocaleTimeString(),
-              }));
-              setTransactions(mapped);
-              setDebugInfo(`Loaded ${mapped.length} payments (background)`);
-            }
+            const bgSnap = await getDocs(q);
+            const bg = bgSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const mapped: Transaction[] = (bg || []).map((p: any) => ({
+              id: p.razorpay_payment_id || p.id,
+              type: "received",
+              amount: p.amount,
+              name: "Maintenance Payment",
+              avatar:
+                "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+              date: new Date(p.created_at).toLocaleDateString(),
+              time: new Date(p.created_at).toLocaleTimeString(),
+            }));
+            setTransactions(mapped);
+            setDebugInfo(`Loaded ${mapped.length} payments (background)`);
           } catch {}
         })();
         return;
       }
-
-      if (error) {
-        console.error("❌ Error fetching payments:", error);
-        setError(error.message);
-        setDebugInfo(`Database error: ${error.message}`);
-        return;
-      }
-
-      
-      const mapped: Transaction[] = (data || []).map((p: any) => ({
-        id: p.razorpay_payment_id || p.id,
-        type: "received",
-        amount: p.amount,
-        name: "Maintenance Payment",
-        avatar:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-        date: new Date(p.created_at).toLocaleDateString(),
-        time: new Date(p.created_at).toLocaleTimeString(),
-      }));
-
-      setTransactions(mapped);
-      setDebugInfo(`Loaded ${mapped.length} payments`);
     } catch (err) {
       console.error("❌ Exception in fetchPayments:", err);
       setError("Failed to fetch payments");
@@ -165,48 +147,27 @@ const PaymentPage = () => {
       console.log("💾 Inserting payment to DB:", payment);
       setDebugInfo("Saving payment to database...");
       
-      const { data, error } = await supabase.from("payments").insert([
-        {
-          user_id: user?.id || null, // Use actual user ID if authenticated
-          razorpay_payment_id: payment.razorpay_payment_id,
-          amount: payment.amount,
-          currency: payment.currency,
-          status: payment.status,
-          // description: payment.description, // Temporarily removed until migration is run
-          payment_method: "razorpay",
-        },
-      ]);
+      await addDoc(collection(db, 'payments'), {
+        user_id: user?.uid || null,
+        razorpay_payment_id: payment.razorpay_payment_id,
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        payment_method: "razorpay",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
 
-      console.log("💾 Insert result:", { data, error });
-
-      if (error) {
-        console.error("❌ Error inserting payment:", error);
-        console.error("❌ Error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        
-        setDebugInfo(`Insert error: ${error.message}`);
-        
-        toast({
-          title: "Database Error",
-          description: `Payment succeeded but could not save in database: ${error.message}`,
-          variant: "destructive",
-        });
-        return false;
-      } else {
-        console.log("✅ Payment inserted successfully:", data);
-        setDebugInfo("Payment saved successfully!");
-        
-        toast({
-          title: "Payment Recorded",
-          description: "Payment details have been saved.",
-        });
-        await fetchPayments(); // Refresh UI immediately
-        return true;
-      }
+      setDebugInfo("Payment saved successfully!");
+      
+      toast({
+        title: "Payment Recorded",
+        description: "Payment details have been saved.",
+      });
+      await fetchPayments(); // Refresh UI immediately
+      return true;
     } catch (error) {
       console.error("❌ Exception in insertPaymentToDB:", error);
       setDebugInfo(`Exception: ${error}`);
@@ -224,7 +185,7 @@ const PaymentPage = () => {
     console.log("💳 Starting payment process");
     setDebugInfo("Starting payment...");
     
-    if (!user?.id && !isSkipped) {
+    if (!user?.uid && !isSkipped) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to make payments",
@@ -248,9 +209,9 @@ const PaymentPage = () => {
       }
 
       // Get user data for Razorpay
-      const userName = user?.user_metadata?.full_name || user?.email || "Guest User";
+      const userName = user?.displayName || user?.email || "Guest User";
       const userEmail = user?.email || "guest@example.com";
-      const userPhone = user?.phone || "9999999999";
+      const userPhone = "9999999999";
 
       console.log("👤 User data for payment:", { userName, userEmail, userPhone });
 
@@ -293,7 +254,7 @@ const PaymentPage = () => {
         theme: {
           color: "hsl(var(--primary))",
         },
-      };
+      } as any;
 
       const paymentObject = new window.Razorpay(options);
       paymentObject.open();
@@ -312,11 +273,9 @@ const PaymentPage = () => {
   };
 
   useEffect(() => {
-    
-    
     // Fetch immediately; don't block on auth. Data will adapt when user changes.
     fetchPayments();
-  }, [user?.id, isSkipped]);
+  }, [user?.uid, isSkipped]);
 
   // Show loading skeleton while auth is loading
   if (authLoading) {
@@ -499,7 +458,7 @@ const PaymentPage = () => {
           <Card className="border-gray-200">
             <CardContent className="p-3">
               <p className="text-xs text-gray-600">
-                <strong>Auth Status:</strong> {user?.id ? `Logged in (${user.email})` : isSkipped ? 'Guest Mode' : 'Not authenticated'}
+                <strong>Auth Status:</strong> {user?.uid ? `Logged in (${user.email})` : isSkipped ? 'Guest Mode' : 'Not authenticated'}
               </p>
             </CardContent>
           </Card>

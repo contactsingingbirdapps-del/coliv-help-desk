@@ -33,7 +33,7 @@ const SettingsPage = () => {
   
   // Profile state
   const [profileData, setProfileData] = useState({
-    fullName: profile?.full_name || user?.user_metadata?.full_name || '',
+    fullName: profile?.full_name || user?.displayName || '',
     email: user?.email || '',
     phone: profile?.phone || '',
     unit: profile?.unit || '',
@@ -44,7 +44,7 @@ const SettingsPage = () => {
   useEffect(() => {
     if (profile) {
       setProfileData({
-        fullName: profile.full_name || user?.user_metadata?.full_name || '',
+        fullName: profile.full_name || user?.displayName || '',
         email: user?.email || '',
         phone: profile.phone || '',
         unit: profile.unit || '',

@@ -86,7 +86,7 @@ export const Header = ({ pendingCount }: HeaderProps) => {
                       </AvatarFallback>
                     </Avatar>
                     <span className="hidden md:inline text-sm font-medium">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
+                      {user.displayName || user.email?.split('@')[0] || 'User'}
                     </span>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
@@ -95,7 +95,7 @@ export const Header = ({ pendingCount }: HeaderProps) => {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {user.user_metadata?.full_name || 'User'}
+                        {user.displayName || 'User'}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.email}

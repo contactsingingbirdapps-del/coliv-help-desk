@@ -67,7 +67,7 @@ export const IssueCard = ({ issue }: IssueCardProps) => {
             variant={issue.status === "resolved" ? "default" : "secondary"}
             className="capitalize"
           >
-            {issue.status.replace("-", " ")}
+            {((issue.status ?? "pending") as string).replace("-", " ")}
           </Badge>
         </div>
       </CardContent>
