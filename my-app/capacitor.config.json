@@ -1,5 +1,5 @@
 {
-  "appId": "com.example.app",
+  "appId": "com.cohub.app",
   "appName": "co-hub-app",
   "webDir": "dist",
   "plugins": {
