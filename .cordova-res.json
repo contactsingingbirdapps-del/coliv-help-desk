@@ -1,0 +1,9 @@
+{
+  "android": {
+    "adaptive-icon": {
+      "foreground": "resources/icon.png",
+      "background": "#FFFFFF",
+      "foreground-scale": 0.65
+    }
+  }
+}
