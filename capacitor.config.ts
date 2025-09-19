@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.cohub.app',
+  appId: 'com.CoLiv.help.desk.app',
   appName: 'cohub-help-desk-app',
   webDir: 'dist'
 };

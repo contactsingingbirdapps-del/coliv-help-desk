@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1022591558108",
+    "project_id": "coliv-management-help-desk",
+    "storage_bucket": "coliv-management-help-desk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1022591558108:android:30ca8e172043b2b49daf19",
+        "android_client_info": {
+          "package_name": "com.CoLiv.help.desk.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2wG7O9LuceFRBbvr9mFVKu62OYFclxEE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,23 @@
+// Firebase App Distribution helper tasks
+
+android.applicationVariants.all { variant ->
+    if (variant.buildType.name == "release" || variant.buildType.name == "debug") {
+        task("appDistribution${variant.name.capitalize()}", type: Exec) {
+            dependsOn "assemble${variant.name.capitalize()}"
+            
+            def buildType = variant.buildType.name
+            def apkPath = "app/build/outputs/apk/${buildType}/app-${buildType}.apk"
+            
+            commandLine "./gradlew", "appDistributionUpload${variant.name.capitalize()}"
+            
+            doFirst {
+                println "Uploading ${variant.name} build to Firebase App Distribution..."
+                println "APK path: ${apkPath}"
+            }
+            
+            doLast {
+                println "Successfully uploaded ${variant.name} build to Firebase App Distribution!"
+            }
+        }
+    }
+}
