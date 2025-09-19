@@ -81,23 +81,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const skipped = localStorage.getItem('auth_skipped') === 'true';
     setIsSkipped(skipped);
 
-    // Set up Firebase auth state listener
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchProfile(currentUser.uid);
-        localStorage.removeItem('auth_skipped');
-        setIsSkipped(false);
-      } else {
-        setProfile(null);
-      }
+    // Set up Firebase auth state listener with error handling
+    if (!auth) {
+      console.warn("Firebase auth not available, setting loading to false");
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => unsubscribe();
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchProfile(currentUser.uid);
+          localStorage.removeItem('auth_skipped');
+          setIsSkipped(false);
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("❌ Error setting up auth state listener:", error);
+      setLoading(false);
+    }
   }, []);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
+    if (!auth || !db) {
+      return { error: { message: 'Firebase not available' } };
+    }
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       if (fullName && cred.user) {
@@ -123,6 +137,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!auth) {
+      return { error: { message: 'Firebase not available' } };
+    }
     try {
       await signInWithEmailAndPassword(auth, email, password);
       return { error: null };
