@@ -57,9 +57,6 @@ dependencies {
     // Firebase Analytics
     implementation 'com.google.firebase:firebase-analytics'
     
-    // Firebase App Distribution
-    implementation 'com.google.firebase:firebase-appdistribution-api'
-    
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
@@ -67,6 +64,5 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
-apply from: '../firebase-distribution.gradle'
 
 // Google services plugin is now applied at the top of the file
