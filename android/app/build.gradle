@@ -3,10 +3,10 @@ apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.appdistribution'
 
 android {
-    namespace "CoLiv.help.desk"
+    namespace "com.coliv.helpdesk"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "CoLiv.help.desk"
+        applicationId "com.coliv.helpdesk"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
