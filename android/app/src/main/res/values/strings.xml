@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">cohub-help-desk-app</string>
-    <string name="title_activity_main">cohub-help-desk-app</string>
+    <string name="app_name">Coliv-Help Desk</string>
+    <string name="title_activity_main">Coliv-Help Desk</string>
     <string name="package_name">com.cohub.app</string>
     <string name="custom_url_scheme">com.cohub.app</string>
 </resources>
