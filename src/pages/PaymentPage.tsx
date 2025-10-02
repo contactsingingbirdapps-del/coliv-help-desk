@@ -216,7 +216,7 @@ const PaymentPage = () => {
       console.log("👤 User data for payment:", { userName, userEmail, userPhone });
 
       const options = {
-        key: "rzp_test_VSkkDl7N8oIENZ",
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: 100 * 100, // Razorpay uses paise (₹100)
         currency: "INR",
         name: "CoLiving Hub",
