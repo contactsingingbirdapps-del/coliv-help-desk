@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enable Firebase Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            padding: 40px;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .emoji {
+            font-size: 1.2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        
+        .error-box {
+            background: #fee;
+            border-left: 4px solid #f44336;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .error-box h3 {
+            color: #d32f2f;
+            margin-bottom: 10px;
+        }
+        
+        .error-box code {
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d32f2f;
+        }
+        
+        .steps {
+            margin: 30px 0;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            padding: 25px;
+            margin: 15px 0;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s;
+        }
+        
+        .step:hover {
+            transform: translateX(5px);
+        }
+        
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .step-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .step-content {
+            margin-left: 50px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin: 10px 5px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #28a745;
+        }
+        
+        .btn-secondary:hover {
+            background: #218838;
+        }
+        
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .success-box h3 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+        
+        .checklist {
+            margin: 20px 0;
+        }
+        
+        .checklist-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .checklist-item::before {
+            content: "☐";
+            font-size: 1.5em;
+            margin-right: 10px;
+            color: #667eea;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="emoji">🔥</span> Enable Firebase Authentication</h1>
+        <p class="subtitle">Your Firebase project needs Email/Password authentication enabled</p>
+        
+        <div class="error-box">
+            <h3>❌ Current Error</h3>
+            <p><code>CONFIGURATION_NOT_FOUND (400 Bad Request)</code></p>
+            <p style="margin-top: 10px;">This means Email/Password authentication is <strong>not enabled</strong> in your Firebase project.</p>
+        </div>
+        
+        <div class="btn-container">
+            <a href="https://console.firebase.google.com/project/coliv-management-help-desk/authentication/providers" 
+               target="_blank" 
+               class="btn">
+                🚀 Open Firebase Console
+            </a>
+        </div>
+        
+        <div class="steps">
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    Click "Get Started" (if you see it)
+                </div>
+                <div class="step-content">
+                    If this is the first time setting up authentication, you'll see a "Get Started" button. Click it!
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    Find "Email/Password" Provider
+                </div>
+                <div class="step-content">
+                    In the list of authentication providers, look for <span class="highlight">Email/Password</span>. It should be at the top of the list.
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">3</span>
+                    Enable Email/Password
+                </div>
+                <div class="step-content">
+                    Click on "Email/Password", toggle the <span class="highlight">first switch to Enable</span>, then click <strong>Save</strong>.
+                    <br><br>
+                    <em>Note: You don't need to enable "Email link (passwordless sign-in)"</em>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    Create a Test User
+                </div>
+                <div class="step-content">
+                    Go to the "Users" tab and click "Add user". Create a test account:
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Email: <code>admin@example.com</code></li>
+                        <li>Password: <code>Admin123!</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="success-box">
+            <h3>✅ After Enabling Authentication</h3>
+            <p>Once you've enabled Email/Password authentication, your app will work perfectly!</p>
+            <div class="checklist">
+                <div class="checklist-item">No more 400 errors</div>
+                <div class="checklist-item">Login will work</div>
+                <div class="checklist-item">Sign up will work</div>
+                <div class="checklist-item">Full authentication functionality</div>
+            </div>
+        </div>
+        
+        <div class="btn-container">
+            <a href="https://console.firebase.google.com/project/coliv-management-help-desk/authentication/providers" 
+               target="_blank" 
+               class="btn">
+                🔧 Enable Authentication Now
+            </a>
+            <a href="https://console.firebase.google.com/project/coliv-management-help-desk/authentication/users" 
+               target="_blank" 
+               class="btn btn-secondary">
+                👥 Add Test User
+            </a>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee; text-align: center; color: #666;">
+            <p><strong>⏱️ This takes 2 minutes!</strong></p>
+            <p style="margin-top: 10px;">After enabling authentication, refresh your app and try logging in again.</p>
+        </div>
+    </div>
+</body>
+</html>

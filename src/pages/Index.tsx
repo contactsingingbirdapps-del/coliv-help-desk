@@ -3,7 +3,7 @@ import { IssueForm } from "@/components/IssueForm";
 import { IssueCard } from "@/components/IssueCard";
 import { StatsOverview } from "@/components/StatsOverview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useIssues } from "@/hooks/useIssues";
+import { useIssuesAPI as useIssues } from "@/hooks/useIssuesAPI";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";

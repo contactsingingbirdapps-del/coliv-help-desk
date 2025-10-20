@@ -1,5 +1,5 @@
 import { Header } from "@/components/Header";
-import { useIssues } from "@/hooks/useIssues";
+import { useIssuesAPI as useIssues } from "@/hooks/useIssuesAPI";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

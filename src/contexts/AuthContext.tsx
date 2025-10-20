@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db, FirebaseUser } from '@/integrations/firebase/client';
+import { auth, FirebaseUser } from '@/integrations/firebase/client';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, updateProfile as updateFirebaseProfile } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { authAPI } from '@/services/api';
 
 interface UserProfile {
   id: string;
@@ -45,31 +45,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isSkipped, setIsSkipped] = useState(false);
 
-  // Fetch user profile from database
+  // Fetch user profile from backend API
   const fetchProfile = async (userId: string) => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-      try {
-        const ref = doc(db, 'profiles', userId);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data() as any;
-          setProfile({
-            id: userId,
-            full_name: data.full_name,
-            phone: data.phone,
-            unit: data.unit,
-            bio: data.bio,
-            avatar_url: data.avatar_url,
-            created_at: data.created_at || new Date().toISOString(),
-            updated_at: data.updated_at || new Date().toISOString(),
-          });
-        } else {
-          return;
-        }
-      } finally {
-        clearTimeout(timeoutId);
+      const { data, error } = await authAPI.getProfile();
+      
+      if (error) {
+        console.error('❌ AuthContext: Error fetching profile:', error);
+        return;
+      }
+      
+      if (data) {
+        setProfile({
+          id: userId,
+          full_name: data.fullName || data.full_name,
+          phone: data.phone,
+          unit: data.unit,
+          bio: data.bio,
+          avatar_url: data.avatar_url || data.avatarUrl,
+          created_at: data.createdAt || data.created_at || new Date().toISOString(),
+          updated_at: data.updatedAt || data.updated_at || new Date().toISOString(),
+        });
       }
     } catch (error) {
       console.error('❌ AuthContext: Exception in fetchProfile:', error);
@@ -109,27 +105,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    if (!auth || !db) {
+    if (!auth) {
       return { error: { message: 'Firebase not available' } };
     }
     try {
+      // Create user in Firebase Auth
       const cred = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update Firebase profile with display name
       if (fullName && cred.user) {
         await updateFirebaseProfile(cred.user, { displayName: fullName });
       }
-      // Create initial profile document
-      await setDoc(doc(db, 'profiles', cred.user.uid), {
-        id: cred.user.uid,
-        full_name: fullName || cred.user.displayName || null,
-        phone: null,
-        unit: null,
-        bio: null,
-        avatar_url: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+      
+      // Note: Profile will be automatically created in backend when user first authenticates
+      // or you can manually sync it with the backend API if needed
+      
       return { error: null };
     } catch (error: any) {
       return { error };
@@ -159,9 +149,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const skipAuth = () => {
-    localStorage.setItem('auth_skipped', 'true');
-    setIsSkipped(true);
-    setLoading(false); // Important: Set loading to false when skipping
+    // Only allow skipping auth in development mode
+    if (import.meta.env.DEV) {
+      localStorage.setItem('auth_skipped', 'true');
+      setIsSkipped(true);
+      setLoading(false);
+    } else {
+      console.warn('Skip auth is disabled in production');
+    }
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
@@ -169,15 +164,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: { message: 'No user logged in' } };
     }
     try {
+      // Update Firebase Auth display name if provided
       if (typeof updates.full_name === 'string') {
         await updateFirebaseProfile(user, { displayName: updates.full_name });
       }
-      const ref = doc(db, 'profiles', user.uid);
-      await setDoc(ref, {
-        ...updates,
-        updated_at: new Date().toISOString(),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+      
+      // Update profile via backend API
+      const { error } = await authAPI.updateProfile({
+        fullName: updates.full_name,
+        phone: updates.phone,
+        unit: updates.unit,
+      });
+
+      if (error) {
+        return { error };
+      }
 
       // Refresh local profile
       await fetchProfile(user.uid);

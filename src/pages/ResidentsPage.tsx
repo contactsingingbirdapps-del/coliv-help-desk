@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { db } from "@/integrations/firebase/client";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { usersAPI } from "@/services/api";
 
 interface Profile {
   id: string;
@@ -17,23 +17,60 @@ const ResidentsPage = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user, isSkipped } = useAuth();
 
   useEffect(() => {
     fetchProfiles();
-  }, []);
+  }, [user, isSkipped]); // Re-fetch when auth state changes
 
   const fetchProfiles = async () => {
     try {
-      const q = query(collection(db, 'profiles'), orderBy('full_name'));
-      const snapshot = await getDocs(q);
-      const rows = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Profile[];
-      setProfiles(rows || []);
+      // Security: Show demo data only if user is not authenticated
+      if (!user && !isSkipped) {
+        setProfiles([
+          {
+            id: 'demo-1',
+            user_id: 'demo-user-1',
+            full_name: 'Demo Resident',
+            avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+          }
+        ]);
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch residents from backend API
+      const { data, error: apiError } = await usersAPI.getAll({ role: 'resident' });
+
+      if (apiError) {
+        throw new Error(apiError.message || 'Failed to load residents');
+      }
+
+      if (data && data.users) {
+        const residents: Profile[] = data.users.map((u: any) => ({
+          id: u.id,
+          user_id: u.id,
+          full_name: u.fullName || u.full_name,
+          avatar_url: u.avatarUrl || u.avatar_url || null,
+        }));
+        setProfiles(residents);
+      } else {
+        setProfiles([]);
+      }
     } catch (error) {
-      console.error("Error fetching profiles:", error);
+      // Show demo data on error
+      setProfiles([
+        {
+          id: 'demo-1',
+          user_id: 'demo-user-1',
+          full_name: 'Demo Resident',
+          avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        }
+      ]);
       toast({
-        title: "Error",
-        description: "Failed to load residents",
-        variant: "destructive",
+        title: "Demo Mode",
+        description: "Showing demo data. Sign in to view real residents.",
+        variant: "default",
       });
     } finally {
       setLoading(false);

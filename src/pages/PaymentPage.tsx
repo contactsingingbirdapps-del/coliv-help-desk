@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,8 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowUpRight, ArrowDownLeft, Plus, RefreshCw, AlertCircle } from "lucide-react";
 import { Header } from "@/components/Header";
-import { db } from "@/integrations/firebase/client";
-import { collection, getDocs, addDoc, orderBy, query as fsQuery, serverTimestamp } from "firebase/firestore";
+import { paymentsAPI } from "@/services/api";
 
 declare global {
   interface Window {
@@ -26,14 +25,26 @@ interface Transaction {
   time: string;
 }
 
-const PaymentPage = () => {
+const PaymentPage = memo(() => {
   const { toast } = useToast();
   const { user, loading: authLoading, isSkipped } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>("");
+
+  // Memoize demo data to prevent recreation
+  const demoTransactions = useMemo(() => [
+    {
+      id: 'demo-1',
+      type: 'received' as const,
+      amount: 1500,
+      name: 'Demo Payment',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+      date: new Date().toLocaleDateString(),
+      time: new Date().toLocaleTimeString(),
+    }
+  ], []);
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -49,88 +60,45 @@ const PaymentPage = () => {
     try {
       setLoading(true);
       setError(null);
-      setDebugInfo("Fetching payments...");
-      
-      // If truly no identity and not skipping, show quick demo
+      // Security: Show demo data if not authenticated
       if (!user?.uid && !isSkipped) {
-        setDebugInfo("No user and not skipped - showing demo data");
-        setTransactions([
-          {
-            id: 'demo-1',
-            type: 'received',
-            amount: 1500,
-            name: 'Demo Payment',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-            date: new Date().toLocaleDateString(),
-            time: new Date().toLocaleTimeString(),
-          }
-        ]);
+        setTransactions(demoTransactions);
         setLoading(false);
         return;
       }
 
-      setDebugInfo("Fetching from database...");
+      // Fetch payments from backend API
+      const { data, error: apiError } = await paymentsAPI.getAll();
 
-      const q = fsQuery(collection(db, 'payments'), orderBy('createdAt', 'desc'));
-
-      // Fast timeout 2.5s for UX
-      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Payments fetch timeout')), 2500));
-
-      try {
-        const result = await Promise.race([(async () => await getDocs(q))(), timeout]);
-        const data = (result as any).docs.map((d: any) => ({ id: d.id, ...d.data() }));
-        const mapped: Transaction[] = (data || []).map((p: any) => ({
-          id: p.razorpay_payment_id || p.id,
-          type: "received",
-          amount: p.amount,
-          name: "Maintenance Payment",
-          avatar:
-            "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-          date: new Date(p.created_at).toLocaleDateString(),
-          time: new Date(p.created_at).toLocaleTimeString(),
-        }));
-        setTransactions(mapped);
-        setDebugInfo(`Loaded ${mapped.length} payments`);
-      } catch (e) {
-        if (transactions.length === 0) {
-          setTransactions([
-            {
-              id: 'demo-1',
-              type: 'received',
-              amount: 1500,
-              name: 'Demo Payment',
-              avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-              date: new Date().toLocaleDateString(),
-              time: new Date().toLocaleTimeString(),
-            }
-          ]);
-        }
+      if (apiError) {
+        setTransactions(demoTransactions);
         setLoading(false);
-        // background refresh (no timeout)
-        (async () => {
-          try {
-            const bgSnap = await getDocs(q);
-            const bg = bgSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const mapped: Transaction[] = (bg || []).map((p: any) => ({
-              id: p.razorpay_payment_id || p.id,
-              type: "received",
-              amount: p.amount,
-              name: "Maintenance Payment",
-              avatar:
-                "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-              date: new Date(p.created_at).toLocaleDateString(),
-              time: new Date(p.created_at).toLocaleTimeString(),
-            }));
-            setTransactions(mapped);
-            setDebugInfo(`Loaded ${mapped.length} payments (background)`);
-          } catch {}
-        })();
         return;
       }
+
+      if (!data || !data.payments || data.payments.length === 0) {
+        setTransactions([]);
+        setLoading(false);
+        return;
+      }
+
+      const parsedTransactions: Transaction[] = data.payments.map((payment: any) => ({
+        id: payment.id,
+        type: 'received',
+        amount: payment.amount || 0,
+        name: payment.customer_name || 'Maintenance Payment',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        date: payment.created_at
+          ? new Date(payment.created_at).toLocaleDateString()
+          : new Date().toLocaleDateString(),
+        time: payment.created_at
+          ? new Date(payment.created_at).toLocaleTimeString()
+          : new Date().toLocaleTimeString(),
+      }));
+
+      setTransactions(parsedTransactions);
     } catch (err) {
-      console.error("❌ Exception in fetchPayments:", err);
       setError("Failed to fetch payments");
-      setDebugInfo(`Exception: ${err}`);
     } finally {
       setLoading(false);
     }
@@ -144,23 +112,19 @@ const PaymentPage = () => {
     description: string;
   }) => {
     try {
-      console.log("💾 Inserting payment to DB:", payment);
-      setDebugInfo("Saving payment to database...");
-      
-      await addDoc(collection(db, 'payments'), {
-        user_id: user?.uid || null,
-        razorpay_payment_id: payment.razorpay_payment_id,
+      // Save payment via backend API
+      const { error: apiError } = await paymentsAPI.create({
         amount: payment.amount,
-        currency: payment.currency,
+        customerName: user?.displayName || user?.email || 'Guest',
+        customerEmail: user?.email || 'guest@example.com',
+        description: payment.description,
+        paymentMethod: 'razorpay',
         status: payment.status,
-        payment_method: "razorpay",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
       });
 
-      setDebugInfo("Payment saved successfully!");
+      if (apiError) {
+        throw new Error(apiError.message || 'Failed to save payment');
+      }
       
       toast({
         title: "Payment Recorded",
@@ -169,9 +133,6 @@ const PaymentPage = () => {
       await fetchPayments(); // Refresh UI immediately
       return true;
     } catch (error) {
-      console.error("❌ Exception in insertPaymentToDB:", error);
-      setDebugInfo(`Exception: ${error}`);
-      
       toast({
         title: "Database Error",
         description: "Payment succeeded but could not save in database.",
@@ -182,9 +143,6 @@ const PaymentPage = () => {
   };
 
   const handlePayment = async () => {
-    console.log("💳 Starting payment process");
-    setDebugInfo("Starting payment...");
-    
     if (!user?.uid && !isSkipped) {
       toast({
         title: "Authentication Required",
@@ -213,10 +171,19 @@ const PaymentPage = () => {
       const userEmail = user?.email || "guest@example.com";
       const userPhone = "9999999999";
 
-      console.log("👤 User data for payment:", { userName, userEmail, userPhone });
+      // Check if Razorpay key is configured
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        toast({
+          title: "Payment Not Configured",
+          description: "Payment gateway is not set up. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: razorpayKey,
         amount: 100 * 100, // Razorpay uses paise (₹100)
         currency: "INR",
         name: "CoLiving Hub",
@@ -224,27 +191,19 @@ const PaymentPage = () => {
         image:
           "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
         handler: async function (response: any) {
-          console.log("✅ Payment successful:", response);
-          setDebugInfo("Payment successful! Saving to database...");
-          
           toast({
             title: "Payment Successful!",
             description: `Payment ID: ${response.razorpay_payment_id}`,
           });
 
           // Insert into DB and refresh list
-          const success = await insertPaymentToDB({
+          await insertPaymentToDB({
             razorpay_payment_id: response.razorpay_payment_id,
             amount: 100, // INR
             currency: "INR",
             status: "success",
             description: "Maintenance Payment",
           });
-
-          if (success) {
-            console.log("✅ Payment processed and saved successfully");
-            setDebugInfo("Payment completed and saved!");
-          }
         },
         prefill: {
           name: userName,
@@ -259,9 +218,6 @@ const PaymentPage = () => {
       const paymentObject = new window.Razorpay(options);
       paymentObject.open();
     } catch (error) {
-      console.error("❌ Payment error:", error);
-      setDebugInfo(`Payment error: ${error}`);
-      
       toast({
         title: "Payment Failed",
         description: "Failed to process payment. Please try again.",
@@ -338,14 +294,6 @@ const PaymentPage = () => {
       <Header pendingCount={0} />
       <div className="p-4 pb-20">
         <div className="max-w-md mx-auto space-y-4">
-          {/* Debug Info */}
-          {debugInfo && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="p-3">
-                <p className="text-xs text-blue-700 font-mono">{debugInfo}</p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* UPI History Section */}
           <Card>
@@ -466,6 +414,8 @@ const PaymentPage = () => {
       </div>
     </div>
   );
-};
+});
+
+PaymentPage.displayName = 'PaymentPage';
 
 export default PaymentPage;
