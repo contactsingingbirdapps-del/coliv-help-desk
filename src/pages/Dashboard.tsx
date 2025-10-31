@@ -16,6 +16,7 @@ const COLORS = {
   low: "hsl(var(--muted-foreground))"
 };
 
+
 const Dashboard = () => {
   const { 
     issues, 
